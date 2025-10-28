@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Map with Night Shading</title>
+
+    <!-- Include Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+
+    <!-- Style for the map -->
+    <style>
+        #map {
+            height: 100vh; /* Full-screen height */
+            width: 100%;  /* Full-screen width */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Map container -->
+    <div id="map"></div>
+
+    <!-- Include Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+
+    <!-- Corrected source for Leaflet.Terminator plugin -->
+    <script src="https://rawcdn.githack.com/joergdietrich/Leaflet.Terminator/master/L.Terminator.js"></script>
+
+    <script>
+        // Initialize the map and set its view to a global scale
+        var map = L.map('map').setView([20, 0], 2);
+
+        // Add OpenStreetMap tiles (layer) to the map
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Function to add major city markers
+        function addCityMarker(lat, lon, cityName, country, population) {
+            var marker = L.marker([lat, lon]).addTo(map);
+            marker.bindPopup("<b>" + cityName + "</b><br>" + country + "<br>Population: " + population.toLocaleString());
+        }
+
+        // Dataset for major cities (population over 1 million)
+        var cities = [
+            { name: "Tokyo", country: "Japan", lat: 35.682839, lon: 139.759455, population: 37435191 },
+            { name: "Delhi", country: "India", lat: 28.704060, lon: 77.102493, population: 28514000 },
+            { name: "Shanghai", country: "China", lat: 31.230416, lon: 121.473701, population: 25582000 },
+            { name: "São Paulo", country: "Brazil", lat: -23.550520, lon: -46.633308, population: 21650000 },
+            { name: "Mexico City", country: "Mexico", lat: 19.432608, lon: -99.133209, population: 21581000 },
+            { name: "Cairo", country: "Egypt", lat: 30.044420, lon: 31.235712, population: 20076000 },
+            { name: "Mumbai", country: "India", lat: 19.076090, lon: 72.877426, population: 19980000 },
+            { name: "Beijing", country: "China", lat: 39.904202, lon: 116.407394, population: 19618000 },
+            { name: "New York City", country: "USA", lat: 40.712776, lon: -74.005974, population: 18804000 },
+            { name: "London", country: "UK", lat: 51.507351, lon: -0.127758, population: 9304000 }
+        ];
+
+        // Add markers for each city
+        cities.forEach(function(city) {
+            addCityMarker(city.lat, city.lon, city.name, city.country, city.population);
+        });
+
+        // Function to update the terminator (day/night shading) over time
+        function updateTerminator() {
+            if (terminator) {
+                map.removeLayer(terminator);  // Remove old terminator
+            }
+            terminator = L.terminator();  // Create new terminator based on the current time
+            terminator.addTo(map);        // Add the updated terminator to the map
+        }
+
+        // Create the initial terminator (night shading) layer and add it to the map
+        var terminator = L.terminator();
+        terminator.addTo(map);
+
+        // Set the terminator to update every minute (60000 milliseconds = 1 minute)
+        setInterval(updateTerminator, 60000);
+
+    </script>
+
+</body>
+</html>
