@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Aircraft Tracker</title>
+    
+    <!-- Include Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+
+    <!-- Style for the map -->
+    <style>
+        #map {
+            height: 100vh; /* Full-screen height */
+            width: 100%;  /* Full-screen width */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Map container -->
+    <div id="map"></div>
+
+    <!-- Include Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+
+    <!-- Include Axios for API requests -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <script>
+        // Initialize the map and set its view to North America
+        var map = L.map('map').setView([37.0902, -95.7129], 4);  // USA Centered
+
+        // Add OpenStreetMap tiles (layer) to the map
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Airplane icon for aircraft markers
+        var planeIcon = L.icon({
+            iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/ec/Airplane_silhouette.png',
+            iconSize: [25, 25], // Size of the icon
+            iconAnchor: [12, 12], // Point of the icon which will correspond to marker's location
+        });
+
+        // Store aircraft data to track flight paths
+        var aircraftMarkers = {};
+        var aircraftPaths = {};
+
+        // Function to fetch aircraft data from OpenSky Network
+        function fetchAircraftData() {
+            // OpenSky API endpoint for aircraft data
+            var openskyApiUrl = 'https://opensky-network.org/api/states/all';
+
+            axios.get(openskyApiUrl)
+                .then(function (response) {
+                    var aircraftData = response.data.states;
+
+                    // Loop through each aircraft and add markers to the map
+                    aircraftData.forEach(function(aircraft) {
+                        var icao24 = aircraft[0];
+                        var lat = aircraft[6];
+                        var lng = aircraft[5];
+                        var altitude = aircraft[7];
+                        var velocity = aircraft[9];
+                        var heading = aircraft[10];
+                        var verticalRate = aircraft[11];
+                        var country = aircraft[2];
+
+                        // Filter to show only aircraft over North America (example region)
+                        if (lat && lng && lat > 10 && lat < 70 && lng > -170 && lng < -50) {
+                            // If the aircraft is already on the map, update its location
+                            if (aircraftMarkers[icao24]) {
+                                var marker = aircraftMarkers[icao24];
+                                marker.setLatLng([lat, lng]);
+
+                                // Update the flight path (polyline)
+                                var path = aircraftPaths[icao24];
+                                path.addLatLng([lat, lng]);
+                            } else {
+                                // Create a new marker for the aircraft
+                                var marker = L.marker([lat, lng], { icon: planeIcon }).addTo(map);
+
+                                // Bind popup with additional aircraft details
+                                marker.bindPopup(
+                                    "<b>Aircraft:</b> " + (aircraft[1] || "N/A") + "<br>" +
+                                    "<b>Origin Country:</b> " + (country || "N/A") + "<br>" +
+                                    "<b>Altitude:</b> " + (altitude ? altitude + " m" : "N/A") + "<br>" +
+                                    "<b>Velocity:</b> " + (velocity ? velocity + " m/s" : "N/A") + "<br>" +
+                                    "<b>Heading:</b> " + (heading ? heading + "°" : "N/A") + "<br>" +
+                                    "<b>Vertical Rate:</b> " + (verticalRate ? verticalRate + " m/s" : "N/A")
+                                );
+
+                                // Store the marker in the aircraftMarkers object
+                                aircraftMarkers[icao24] = marker;
+
+                                // Create a polyline to show the flight path
+                                var polyline = L.polyline([[lat, lng]], { color: 'blue' }).addTo(map);
+                                aircraftPaths[icao24] = polyline;
+                            }
+                        }
+                    });
+                })
+                .catch(function (error) {
+                    console.log("Error fetching aircraft data:", error);
+                });
+        }
+
+        // Fetch aircraft data every 15 seconds
+        setInterval(fetchAircraftData, 15000);
+
+        // Initial fetch when the page loads
+        fetchAircraftData();
+
+    </script>
+
+</body>
+</html>
